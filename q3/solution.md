@@ -125,6 +125,7 @@ Open terminal in your pc run that following commands:
 
 
 2. Wait for maintainer to merge your Pull request (usally it takes 1-2 hours)
+#### Also you have to give a star to maintainers repo then your PR will be acceptable.
 3. You'll get a GitHub notification when it's merged
 4. Your PR URL will look like: `https://github.com/lingdojo/kana-dojo/pull/123`
 5. Copy that URL and submit it as your answer
