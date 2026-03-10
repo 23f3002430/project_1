@@ -23,7 +23,7 @@ const EMAIL = 'YOUR_EMAIL@ds.study.iitm.ac.in'; // ← put your email here
 Select all the text in the script, copy it, paste it into the Console, and press **Enter**.
 
 ### 5. Copy your JWT
-Wait about 2-3 mins. When done you will see:
+Wait about 2-3 mins. Let phase-8 to be cleared.  When done you will see:
 
 ```
 🏆 ESCAPED!
