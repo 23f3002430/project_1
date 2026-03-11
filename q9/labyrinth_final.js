@@ -1,7 +1,7 @@
 (async () => {
 
 // ============================================================
-//  Data Labyrinth — Universal Auto Solver v7 (FINAL)
+//  Data Labyrinth — Universal Auto Solver v8 (FINAL)
 //
 //  HOW TO USE:
 //  1. Go to https://tds-network-games.sanand.workers.dev/labyrinth/
@@ -291,6 +291,20 @@ function computeAnswer(question) {
     if (text.includes('interquartile') || text.includes('iqr'))
         { const iqr=pct(v1,75)-pct(v1,25); log(`   IQR=${iqr}`); return iqr; }
 
+    if (text.includes('weighted mean')) {
+        const sumW  = v2.reduce((s,x)=>s+x,0);
+        const sumWV = v1.reduce((s,x,i)=>s+x*v2[i],0);
+        const wm = sumWV/sumW;
+        log(`   weighted mean(${c1} by ${c2})=${wm} → ${r2(wm)}`); return r2(wm);
+    }
+
+    if (text.includes('top') && (text.includes('sum') || text.includes('total'))) {
+        const m = text.match(/top\s+(\d+)/); const n = m ? Number(m[1]) : 3;
+        const sorted = [...fragments].sort((a,b)=>Number(b[c1])-Number(a[c1])).slice(0,n);
+        const s = sorted.reduce((acc,f)=>acc+Number(f[c2]),0);
+        log(`   top ${n} by ${c1} → sum(${c2})=${s}`); return s;
+    }
+
     if (text.includes('mean') || text.includes('average'))
         { const m=mean(v1); log(`   mean(${c1})=${m} → ${r2(m)}`); return r2(m); }
 
@@ -330,23 +344,23 @@ function computeAnswer(question) {
     if (text.includes('how many') || text.includes('count'))
         { log(`   count=${fragments.length}`); return fragments.length; }
 
-    // ── UNKNOWN — print everything for manual help ────────────
+    // ── UNKNOWN — DO NOT SUBMIT, print everything for manual help ──
     log(`\n${'='.repeat(60)}`);
-    err('UNKNOWN QUESTION — needs manual calculation!');
-    log(`\n📋 COPY EVERYTHING BELOW AND PASTE INTO CLAUDE AI:\n`);
+    err('UNKNOWN QUESTION — will NOT submit. Calculate manually!');
+    log(`\n📋 COPY BELOW AND PASTE INTO CLAUDE AI:\n`);
     log(`Question : ${question.text}`);
     log(`Columns  : ${cols.join(', ')}`);
     log(`\nFragment data (${fragments.length} records):`);
     fragments.forEach(f => log(JSON.stringify(f)));
-    log(`\nSession  : ${SESSION_TOKEN}`);
-    log(`Submit   : fetch('${BASE}/submit',{method:'POST',headers:{'content-type':'application/json','x-session-token':'${SESSION_TOKEN}'},body:JSON.stringify({answer: PUT_ANSWER_HERE})})`);
+    log(`\n✅ You are at exit room. Submit manually when ready:`);
+    log(`fetch('${BASE}/submit',{method:'POST',headers:{'content-type':'application/json','x-session-token':'${SESSION_TOKEN}'},body:JSON.stringify({answer: PUT_ANSWER_HERE})})`);
     log(`${'='.repeat(60)}`);
     return null;
 }
 
 // ── MAIN ─────────────────────────────────────────────────────
 log('='.repeat(60));
-log('  Data Labyrinth — Universal Auto Solver v7');
+log('  Data Labyrinth — Universal Auto Solver v8');
 log('='.repeat(60));
 
 const startData = await startGame();
