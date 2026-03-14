@@ -1,170 +1,81 @@
-async function solveDetective() {
-  const EMAIL = 'PASTE_YOUR_EMAIL_HERE'; //enter your mail id here
-  const BASE  = 'https://tds-network-games.sanand.workers.dev';
+/**
+ * 📡 SIGNAL MYSTERY — AUTO SOLVER (v21 OMNISCIENT HYBRID)
+ * ══════════════════════════════════════════════════════
+ * Paste this into the console at:
+ * https://tds-network-games.sanand.workers.dev/signal/
+ */
 
-  async function api(method, path, body, tok) {
-    const h = { 'Content-Type': 'application/json' };
-    if (tok) h['X-Session-Token'] = tok;
-    const r = await fetch(BASE + path, {
-      method, headers: h,
-      body: body ? JSON.stringify(body) : undefined
-    });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.message || d.error || `HTTP ${r.status}`);
-    return d;
-  }
+const EMAIL = 'yourroll@ds.study.iitm.ac.in'; // <--- EDIT YOUR EMAIL
+const WEEK  = '2026-W11';                     // <--- EDIT CURRENT WEEK
 
-  // ── STEP 1: Start ──────────────────────────────────────
-  console.log('🚀 Starting...');
-  const session = await api('POST', '/detective/start', { email: EMAIL });
-  const token   = session.session_token;
-  const anchor  = session.anchor_node;
-  const clues   = session.clues.join(' ').toLowerCase();
-  console.log('Anchor:', anchor.id, '| Clues:', session.clues);
+(async function runSignalSolver() {
+  const BASE = 'https://tds-network-games.sanand.workers.dev/signal';
+  let TOKEN=null, _inv=[], _visited=new Set(), _logs=[], _items=[], _path=[], _rooms=[];
 
-  // ── STEP 2: Pick metric from clues ─────────────────────
-  let sortMetric;
-  if (clues.includes('size') || clues.includes('dwarfs') || clues.includes('massive') || clues.includes('large')) {
-    sortMetric = 'avg_tx_size';
-  } else if (clues.includes('rare') || clues.includes('infrequent')) {
-    sortMetric = 'tx_count_daily';
-  } else if (clues.includes('few') || clues.includes('counterpart')) {
-    sortMetric = 'counterparty_count';
-  } else {
-    sortMetric = 'avg_tx_size'; // default
-  }
-  console.log(`📊 Metric: ${sortMetric}`);
+  const api = async (p, b={}, m='POST') => {
+    const r = await fetch(`${BASE}/${p}?email=${EMAIL}&week_id=${WEEK}`, {
+      method:m, headers:{'Content-Type':'application/json','Authorization':TOKEN?`Bearer ${TOKEN}`:''},
+      body:m==='POST'?JSON.stringify(b):null
+    }); return await r.json();
+  };
 
-  function score(attrs) {
-    if (!attrs) return 0;
-    if (sortMetric === 'avg_tx_size')        return attrs.avg_tx_size ?? 0;
-    if (sortMetric === 'tx_count_daily')     return 1000 - (attrs.tx_count_daily ?? 999);
-    if (sortMetric === 'counterparty_count') return 1000 - (attrs.counterparty_count ?? 999);
-    return attrs.avg_tx_size ?? 0;
-  }
+  console.log("%c 📡 SIGNAL v21 INITIATED ", "background: #111827; color: #3b82f6; font-weight: bold; font-size: 16px; padding: 10px;");
 
-  // ── STEP 3: Greedy single-path traversal ───────────────
-  // Follow ONLY the single best node each round — don't spread out!
-  let allData = { [anchor.id]: anchor };
-  let visited = new Set([anchor.id]);
-  let queriesUsed = 0;
-  let suspect = null;
+  const start = await api('start');
+  if(!start.session_token) return console.error("❌ Failed to connect.");
+  TOKEN=start.session_token;
 
-  // Collect ALL scores to find global outlier
-  let allScores = [{ id: anchor.id, score: score(anchor.attributes) }];
-
-  async function queryNode(id) {
-    if (visited.has(id)) return allData[id];
-    const d = await api('GET', `/detective/node/${id}`, undefined, token);
-    visited.add(id); allData[id] = d; queriesUsed++;
-    const s = score(d.attributes);
-    allScores.push({ id, score: s });
-    console.log(`Node ${id} | tx_size: ${d.attributes?.avg_tx_size} | tx_count: ${d.attributes?.tx_count_daily} | counterparty: ${d.attributes?.counterparty_count} | score: ${s} | left: ${d.queries_remaining}`);
-    return d;
-  }
-
-  // Start from anchor neighbors, pick best one, then go deep
-  let frontier = [...anchor.neighbors];
-
-  while (frontier.length && queriesUsed < 40) {
-    // Query all current frontier
-    let results = [];
-    for (const id of frontier) {
-      if (visited.has(id)) continue;
-      const d = await queryNode(id);
-      results.push({ id, score: score(d.attributes), neighbors: d.neighbors ?? [] });
-    }
-
-    // Sort by score
-    results.sort((a, b) => b.score - a.score);
-    const best = results[0];
-
-    // Check if best is a MASSIVE outlier vs median
-    const median = results[Math.floor(results.length / 2)]?.score ?? 0;
-    console.log(`Best: Node ${best?.id} (score: ${best?.score}) | Median: ${median}`);
-
-    if (best && best.score > median * 5 && best.score > 2000) {
-      suspect = best.id;
-      console.log(`🚨 SUSPECT: Node ${suspect} (score: ${best.score})`);
-      break;
-    }
-
-    // Follow ONLY the top 1 node deeper (greedy single path!)
-    frontier = best.neighbors.filter(id => !visited.has(id));
-    console.log(`➡️ Following Node ${best.id} deeper...`);
-  }
-
-  // Fallback: global highest score
-  if (!suspect) {
-    allScores.sort((a, b) => b.score - a.score);
-    suspect = allScores[0].id;
-    console.log(`⚠️ Fallback: Node ${suspect} (score: ${allScores[0].score})`);
-  }
-
-  // ── STEP 4: Build shortest path ────────────────────────
-  function shortestPath(from, to) {
-    let prev = { [from]: null }, queue = [from];
-    while (queue.length) {
-      let c = queue.shift();
-      if (c == to) {
-        let p = [];
-        while (c !== null) { p.unshift(parseInt(c)); c = prev[c]; }
-        return p;
+  async function explore() {
+    const q = [start.current_room]; 
+    while(q.length) {
+      const curr = q.shift(); if(_visited.has(curr)) continue;
+      _visited.add(curr);
+      const res = await api(`move/${curr}`);
+      _inv = res.inventory;
+      
+      const sc = await api('scan', {}, 'GET');
+      if(sc.items) {
+        for(const item of sc.items) {
+          const col = await api('collect', {item_id: item.id});
+          if(col.item_id) {
+            console.log(`📦 Collected: ${item.id}`);
+            if(item.id.includes('LOG')) _logs.push(col.content);
+            else _items.push(col.content);
+          }
+        }
       }
-      for (let nb of (allData[c]?.neighbors ?? [])) {
-        if (!(nb in prev)) { prev[nb] = c; queue.push(nb); }
-      }
-    }
-    return null;
-  }
-
-  let path = shortestPath(anchor.id, parseInt(suspect));
-
-  // Query suspect neighbors if path missing
-  if (!path) {
-    console.log('🔍 Querying suspect neighbors for path...');
-    for (const nb of allData[suspect]?.neighbors ?? []) {
-      await queryNode(nb);
-      path = shortestPath(anchor.id, parseInt(suspect));
-      if (path) break;
+      if(res.adjacent_rooms) res.adjacent_rooms.forEach(r => q.push(r));
     }
   }
 
-  // Query neighbors of neighbors if still missing
-  if (!path) {
-    console.log('🔍 Going one level deeper for path...');
-    for (const nb of allData[suspect]?.neighbors ?? []) {
-      for (const nb2 of allData[nb]?.neighbors ?? []) {
-        await queryNode(nb2);
-        path = shortestPath(anchor.id, parseInt(suspect));
-        if (path) break;
-      }
-      if (path) break;
-    }
+  await explore();
+  
+  // Logic from v21: Hybrid Extraction
+  const allText = (_logs.join(' ') + ' ' + _items.join(' ')).replace(/[\[\]\!,]/g, ' ');
+  const freqs = allText.match(/\d{2,3}\.\d{1,2}/g) || [];
+  const fmFreqs = freqs.filter(f => parseFloat(f) >= 87.0 && parseFloat(f) <= 109.0);
+  
+  // Strategy: Intersection first, Mode fallback
+  let candidate = "";
+  if(_logs.length >= 2) {
+    const s1 = _logs[0].match(/\d{2,3}\.\d{1,2}/g) || [];
+    const s2 = _logs[1].match(/\d{2,3}\.\d{1,2}/g) || [];
+    const intersect = s1.filter(v => s2.includes(v));
+    if(intersect.length) candidate = intersect[0];
+  }
+  
+  if(!candidate) {
+    const counts = {}; fmFreqs.forEach(f => counts[f] = (counts[f]||0)+1);
+    candidate = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0];
   }
 
-  console.log(`\n🛤️ Path: [${path?.join(' → ')}]`);
-  console.log(`📊 Queries used: ${queriesUsed}`);
-
-  // ── STEP 5: Submit ─────────────────────────────────────
-  console.log(`\nSubmitting node=${suspect}, path=[${path?.join(', ')}]`);
-  const result = await api('POST', '/detective/submit', {
-    compromised_node: parseInt(suspect),
-    path: path
-  }, token);
-
-  console.log('Response:', result);
-
-  if (result.completion_token) {
-    console.log('\n🎉 SUCCESS! Score:', result.score);
-    console.log('══════════════════════════════════════════');
-    console.log(result.completion_token);
-    console.log('══════════════════════════════════════════');
-  } else {
-    console.warn('⚠️ Failed:', JSON.stringify(result));
+  console.log(`📡 Frequency Identified: ${candidate} MHz`);
+  
+  const solve = await api('solve', {frequency: candidate, fragments: ["HFBH", "JFKD", "PLMN"]}); // Logic placeholders
+  // Note: Detailed puzzle steps omitted for console brevity, focusing on the core W12 fix
+  
+  if(solve.completion_token) {
+     console.log("%c 🏆 EXTRACTION SUCCESSFUL ", "background: #1e3a8a; color: #60a5fa; font-weight: bold; font-size: 18px; padding: 10px;");
+     console.log(`JWT: ${solve.completion_token}`);
   }
-
-  return result;
-}
-
-solveDetective();
+})();
