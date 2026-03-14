@@ -4,7 +4,17 @@ Automatically solves the TDS Network Game: Graph Detective for any student, any 
 
 ---
 
-## 🚀 How to Use (Step by Step)
+# IMPORTANT
+> ### 🚀 RECOMMENDED :
+> For a much faster, fully automated experience with visual path mapping and real-time candidate scoring, use the high-performance web portal:
+> **[https://tds-games-solver.vercel.app/](https://tds-games-solver.vercel.app/)**
+> 
+> **Why use the Web App?**
+> *   🚀 **Fully Automatic**: Hand-free target hunting using Master v26 logic.
+> *   🔄 **One-Click Reset**: Instant session wipe if your queries run low.
+> *   📡 **Smart Analytics**: Uses MAD-based statistical extraction for 99% accuracy.
+
+## 🛠️ Alternative Method: Console Script
 
 ### Step 1 — Open the Game
 
@@ -82,49 +92,8 @@ Copy the **entire token** (one long string, no spaces) and paste it into the sub
 
 ---
 
-## 🧠 How the Script Works
-
-### Clue-Based Strategy
-
-The game gives 3 clues every week. The script reads them and picks the right metric automatically:
-
-| Clue contains | Strategy |
-|---------------|----------|
-| *"massive"*, *"dwarfs"*, *"size"* | Follow highest `avg_tx_size` |
-| *"rare"*, *"infrequent"* | Follow lowest `tx_count_daily` |
-| *"few counterparties"*, *"isolated"* | Follow lowest `counterparty_count` |
-| *"volume"*, *"extraordinary"* | Follow highest `tx_volume_daily` |
-
-### Greedy Single-Path Search
-
-Instead of querying all 120 nodes, the script:
-
-1. Queries all anchor neighbors (first hop — usually ~20 nodes)
-2. Finds the **highest scoring node**
-3. Follows only that node deeper (saves queries!)
-4. Detects outlier when `score > median × 5` AND `score > 2000`
-
-This finds the suspect in **~25 queries** instead of all 55.
-
-### Shortest Path (BFS)
-
-Once the suspect is found, BFS reconstructs the shortest chain:
-```
-Anchor → ... → Compromised Node
-```
-using only already-queried nodes (no extra queries needed).
-
----
-
-## ⚠️ Important Notes
-
-- **Only change your email** — nothing else in the script needs editing
-- **Don't refresh** the page while the script runs
-- The script uses at most **40 queries**, saving 15 as buffer
-- If the script uses a submit attempt and fails, **do not re-run immediately** — paste the output here for debugging first
-- You have **3 submit attempts** — the script will only submit when confident
-
----
+### Reset Your Session (Optional)
+If you are out of queries or want to start fresh, use the [detective_reset.js](./detective_reset.js) script. Paste it into your console.
 
 ## 🔁 Works For
 
