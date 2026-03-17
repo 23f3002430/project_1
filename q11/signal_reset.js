@@ -1,33 +1,47 @@
 /**
- * 🔄 SIGNAL MYSTERY — SESSION RESET SCRIPT
+ * 🔄 SIGNAL MYSTERY — SESSION RESET SCRIPT (v11.3 AUTH-AWARE)
  * ════════════════════════════════════════════
- * Paste this into the console at:
- * https://tds-network-games.sanand.workers.dev/signal/
  */
 
 const EMAIL = 'yourroll@ds.study.iitm.ac.in'; // <--- EDIT YOUR EMAIL
 const WEEK  = '2026-W11';                     // <--- EDIT CURRENT WEEK
 
-(async function resetSignal() {
-  console.log("%c 🔄 Initiating Signal Reset...", "color: #f59e0b; font-weight: bold; font-size: 14px;");
-  
+(async function resetSignalAuth() {
+  console.log("%c 🔄 Initiating Auth-Aware Signal Reset...", "color: #f59e0b; font-weight: bold; font-size: 14px;");
   const base = 'https://tds-network-games.sanand.workers.dev/signal';
-  
+  const startBody = { email: EMAIL, week: WEEK };
+
   try {
-    // 1. Wipe Session
-    const clearRes = await fetch(`${base}/clear?email=${EMAIL}&week_id=${WEEK}`, { method: 'POST' });
+    const authRes = await fetch(`${base}/start`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(startBody)
+    });
+    const authData = await authRes.json();
+    const token = authData.session_token;
+
+    if (!token) return console.error("❌ Auth Failed.");
+
+    const clearRes = await fetch(`${base}/clear`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
+      body: JSON.stringify(startBody)
+    });
     const clearData = await clearRes.json();
     console.log("✅ Session Wiped:", clearData.message || "Success");
 
-    // 2. Start Fresh
-    const startRes = await fetch(`${base}/start?email=${EMAIL}&week_id=${WEEK}`, { method: 'POST' });
+    const startRes = await fetch(`${base}/start`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(startBody)
+    });
     const startData = await startRes.json();
     
     if (startData.session_token) {
       console.log("%c 🚀 SUCCESS: Session restarted!", "color: #10b981; font-weight: bold;");
       console.log(`📍 Current Room: ${startData.current_room}`);
     } else {
-      console.error("❌ Reset Error:", startData);
+      console.error("❌ Error:", startData);
     }
   } catch (err) {
     console.error("❌ Fetch Error:", err);
